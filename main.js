@@ -1,4 +1,4 @@
-const { app, globalShortcut, BrowserWindow, ipcMain } = require("electron");
+const { app, globalShortcut, BrowserWindow, ipcMain, Tray, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
 
@@ -10,7 +10,9 @@ app.commandLine.appendSwitch("high-dpi-support", "true");
 app.commandLine.appendSwitch("force-device-scale-factor", "1");
 
 let win;
+let tray;
 const notesPath = path.join(app.getPath("userData"), "notes.txt");
+
 ipcMain.handle("load-text", async () => {
   try {
     const text = await fs.readFile(notesPath, "utf-8");
@@ -34,29 +36,87 @@ ipcMain.handle("save-text", async (event, text) => {
   }
 });
 
+ipcMain.handle("hide-window", () => {
+  if (win) {
+    win.hide();
+  }
+});
+
 function createWindow() {
   win = new BrowserWindow({
     width: 600,
     height: 400,
-    frame: false,
+    frame: true,
     resizable: true,
     transparent: false,
     show: false,
+    skipTaskbar: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
+
   win.webContents.setZoomFactor(1.0);
   win.loadFile(path.join(__dirname, "index.html"));
+
   win.once("ready-to-show", () => {
     win.show();
   });
+
+  // Prevent closing, just hide instead
+  win.on("close", (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
 }
+
+function createTray() {
+  // Try to use icon, fallback to no icon if not found
+  try {
+    tray = new Tray(path.join(__dirname, "icon.png"));
+  } catch (err) {
+    tray = new Tray(path.join(__dirname, "icon.ico"));
+  }
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show n0tez',
+      click: () => {
+        win.show();
+        win.focus();
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setToolTip('n0tez');
+  tray.setContextMenu(contextMenu);
+
+  tray.on("click", () => {
+    if (win.isVisible()) {
+      win.hide();
+    } else {
+      win.show();
+      win.focus();
+    }
+  });
+}
+
 app.whenReady().then(() => {
   createWindow();
-  globalShortcut.register("Control+Space", () => {
+  createTray();
+
+  const ret = globalShortcut.register("Control+Space", () => {
     if (!win) return;
     if (win.isVisible()) {
       win.hide();
@@ -65,11 +125,28 @@ app.whenReady().then(() => {
       win.focus();
     }
   });
+
+  if (!ret) {
+    console.error("Global shortcut registration failed");
+  }
+
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else {
+      win.show();
+    }
   });
 });
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+app.on("window-all-closed", (e) => {
+  e.preventDefault();
+});
+
+app.on("before-quit", () => {
+  app.isQuitting = true;
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });

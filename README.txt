@@ -1,4 +1,4 @@
-JetBrains Mono Variable Font
+G
 ============================
 
 This download contains JetBrains Mono as both variable fonts and static fonts.

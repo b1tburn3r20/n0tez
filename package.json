@@ -12,11 +12,10 @@
   "keywords": [],
   "author": "b1tburn3r20",
   "license": "MIT",
-  "dependencies": {
-    "electron": "^31.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "electron-builder": "^24.9.1"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.n0tez.app",
@@ -52,6 +51,7 @@
           ]
         }
       ],
+      "executableName": "n0tez",
       "icon": "icon.ico",
       "publisherName": "b1tburn3r20",
       "verifyUpdateCodeSignature": false,
