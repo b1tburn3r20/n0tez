@@ -50,10 +50,11 @@ ipcMain.handle("minimize-window", () => {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 600,
-    height: 400,
+    width: 1000,
+    height: 800,
     frame: false,
     resizable: true,
+    roundedCorners: true,
     transparent: true,
     show: false,
     skipTaskbar: false,
