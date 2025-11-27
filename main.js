@@ -42,15 +42,22 @@ ipcMain.handle("hide-window", () => {
   }
 });
 
+ipcMain.handle("minimize-window", () => {
+  if (win) {
+    win.minimize();
+  }
+});
+
 function createWindow() {
   win = new BrowserWindow({
     width: 600,
     height: 400,
-    frame: true,
+    frame: false,
     resizable: true,
-    transparent: false,
+    transparent: true,
     show: false,
     skipTaskbar: false,
+    vibrancy: "ultra-dark",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -65,7 +72,6 @@ function createWindow() {
     win.show();
   });
 
-  // Prevent closing, just hide instead
   win.on("close", (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
@@ -75,11 +81,18 @@ function createWindow() {
 }
 
 function createTray() {
-  // Try to use icon, fallback to no icon if not found
+  let iconPath;
+  if (process.platform === 'win32') {
+    iconPath = path.join(__dirname, 'icon.ico');
+  } else {
+    iconPath = path.join(__dirname, 'icon.png');
+  }
+
   try {
-    tray = new Tray(path.join(__dirname, "icon.png"));
+    tray = new Tray(iconPath);
   } catch (err) {
-    tray = new Tray(path.join(__dirname, "icon.ico"));
+    console.error('Failed to create tray icon:', err);
+    return;
   }
 
   const contextMenu = Menu.buildFromTemplate([
@@ -102,7 +115,7 @@ function createTray() {
   tray.setToolTip('n0tez');
   tray.setContextMenu(contextMenu);
 
-  tray.on("click", () => {
+  tray.on('click', () => {
     if (win.isVisible()) {
       win.hide();
     } else {
@@ -116,8 +129,12 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
-  const ret = globalShortcut.register("Control+Space", () => {
-    if (!win) return;
+  const registered = globalShortcut.register("CommandOrControl+Space", () => {
+    console.log("Shortcut triggered");
+    if (!win) {
+      createWindow();
+      return;
+    }
     if (win.isVisible()) {
       win.hide();
     } else {
@@ -126,15 +143,18 @@ app.whenReady().then(() => {
     }
   });
 
-  if (!ret) {
-    console.error("Global shortcut registration failed");
+  if (!registered) {
+    console.error("Global shortcut registration failed - may be already in use");
   }
+
+  console.log("Shortcut registered:", registered);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     } else {
       win.show();
+      win.focus();
     }
   });
 });

@@ -27,7 +27,9 @@
       "main.js",
       "preload.js",
       "index.html",
-      "JetBrainsMono-VariableFont_wght.ttf"
+      "JetBrainsMono-VariableFont_wght.ttf",
+      "icon.ico",
+      "icon.png"
     ],
     "linux": {
       "target": [
